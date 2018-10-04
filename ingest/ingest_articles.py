@@ -1,19 +1,25 @@
 #  Imports
 
 import string
-from utils.ingest_utils import *
+import nltk
+
+from io import StringIO
 from struct import pack
+from utils.ingest_utils import *
 
 #  Constants
 
-#  a conversion table for removing punctuation from strings
-CONV_TABLE = str.maketrans({key: None for key in string.punctuation})
+#  the start of a new document, holds the doc id
+START_OF_DOC = "<P ID="
+
+#  the end of a document
+END_OF_DOC = "</P>"
 
 #  Global data structures
 
 #  a dictionary to store results
 #  key: term
-#  value:  dictionary: (docID, numOccurences)
+#  value:  dictionary: (docID, numOccurrences)
 postings_lists = dict()
 
 #  dictionary is list of 3-tuples
@@ -34,15 +40,17 @@ total_terms = 0
 
 #  Document parser
 
+
 #  reads a document and gets each term
 #  by splitting on space and adds the term to the postings lists
 def process_document_content(doc_id, document):
     global total_terms
     global unique_terms
 
+    print("spliitting terms")
     terms = document.split(" ")
     for term in terms:
-        term = term.translate(CONV_TABLE).rstrip().lower()
+        term = term.rstrip().lower()
 
         #  skip blank words, usually from a separated punctuation.
         #  Links, images too
@@ -52,7 +60,7 @@ def process_document_content(doc_id, document):
         total_terms = total_terms + 1
         if term in postings_lists:
             if doc_id in postings_lists[term]:
-                #  word is already in this document, increase its document occurence
+                #  word is already in this document, increase its document occurrence
                 postings_lists[term][doc_id] = postings_lists[term][doc_id] + 1
             #  word is already found in collection but new to the document
             else:
@@ -69,21 +77,33 @@ def process_document_content(doc_id, document):
 #  break into a dictionary and an inverted index
 def parse_collection(collection_file, dictionary_file, inverted_index_file):
     #  read in the file
-    current_line = 0
     doc_id = 0
-    with open(collection_file, 'r') as headlines:
-        for line in headlines:
-            current_line = current_line + 1
+    with open(collection_file, 'r') as articles:
 
-            #  document ID is the first line
-            if current_line % 4 == 1:
+        #  create new buffer to hold document content
+        document = StringIO()
+
+        #  check each line of file
+        for line in articles:
+            if line.startswith(START_OF_DOC):
+                #  this is a new document, grab doc id from this line
                 doc_id = get_doc_id(line)
 
-            #  document content is the second, process for each term
-            elif current_line % 4 == 2:
-                process_document_content(doc_id, line)
+            elif line.startswith(END_OF_DOC):
+                #  this is the end of the document
 
-            #  third and fourth lines are closed p tags and empty lines
+                #  process this document for the dictionary
+                process_document_content(doc_id, document.getvalue())
+
+                #  reset document buffer
+                document = StringIO()
+
+            else:
+                #  this line exists in the document, append the line's tokens to the document data structure
+                for token in nltk.word_tokenize(line):
+                    if len(token) > 5:
+                        token = token[0:4]
+                    document.write(token + " ")
 
     #  break lexicon into a dictionary and inverted index
 
