@@ -1,7 +1,12 @@
 import math
+import time
+
+from ingest.ingest_articles import *
+
+from query.query_inverted_index import query_term
 
 from random import randint
-from query.query_inverted_index import query_term
+
 from utils.query_utils import *
 from utils.ingest_utils import *
 
@@ -13,19 +18,17 @@ NUM_DOCS = 57982
 #  The number of queries being processed
 NUM_QUERIES = 30
 
-#  ingest the terms into a dictionary and inverted index
-# parse_collection("S:/data/animal.txt", "C:/Users/Ben/data/dictionary-animal.txt", "C:/Users/Ben/data/inverted_index-animal")
+#  clock the start time
+start_time = time.time()
 
+#  ingest the terms into a dictionary and inverted index
+parse_collection("S:/data/cds14.txt", "C:/Users/Ben/data/dictionary.txt", "C:/Users/Ben/data/inverted_index")
 
 #  grab the dictionary from file
 term_dictionary = get_dictionary_from_file("C:/Users/Ben/data/dictionary.txt")
 
 #  grab the inverted index from file
 index = open("C:/Users/Ben/data/inverted_index", 'rb')
-
-#  Calculate td-idf for index terms
-#  IDF = log2(57,982/len(postings_lists[term])
-# print("Computing document lengths for {} terms".format(len(term_dictionary)))
 
 #  a dictionary to store document lengths
 #  key: document ID
@@ -39,13 +42,13 @@ for term in term_dictionary:
     #  key: doc ID
     #  value: term freq
     term_info = query_term(term, term_dictionary, index)
-    # print("This term appears in {} documents".format(len(term_info)))
+
     #  do processing for each document this term appears in
     idf = math.log2(NUM_DOCS / len(term_info))
     for doc in term_info:
         tf = term_info[doc]
         tf_idf = tf * idf
-        # print("tf-idf for {} in document # {} is {}".format(term, doc, tf_idf))
+
         #  store the square of tf-idf in accumulator
         if doc in document_lengths:
             document_lengths[doc] = document_lengths[doc] + (tf_idf ** 2)
@@ -55,8 +58,6 @@ for term in term_dictionary:
 #  to get the length, need to take the square root of these sum of squares
 for length in document_lengths:
     document_lengths[length] = math.sqrt(document_lengths[length])
-
-# print(document_lengths)
 
 #  process the query document
 queries = get_queries_from_file("C:/Users/Ben/data/cds14.topics.txt")
@@ -80,14 +81,19 @@ for query_id in queries:
     #  hold the vector length of the query
     query_vector_length = 0
 
-    # print("Processing query # {}: {}".format(query_id, queries[query_id]))
-
     for term in queries[query_id].split(" "):
         #  tokenize query in same manner as document indexing
+
         #  skip blank words, usually from a separated punctuation.
         #  Links, images too
         if is_not_term(term):
             continue
+
+        # if len(term) > 5:
+        # term = term[0:4]
+
+        # if is_not_term(term):
+        # continue
 
         if term in query_map:
             query_map[term] = query_map[term] + 1
@@ -95,7 +101,7 @@ for query_id in queries:
         else:
             query_map[term] = 1
 
-    # print("As a map: {}".format(query_map))
+    # print("Query as a bag of words: {}".format(query_map))
 
     #  generate a ranked list of document results for each query
 
@@ -103,31 +109,26 @@ for query_id in queries:
     curr_query_index = 0
     idf = 0
     for term in query_map:
-        # print("Checking inverted file for {}".format(term))
         query_term_info = query_term(term, term_dictionary, index)
-        # print(query_term_info)
 
         #  tf for query comes from query
         tf = query_map[term]
-        # print("{} occurs {} times in the query".format(term, tf))
 
         #  idf for query comes from background documents
         idf = math.log2(NUM_DOCS / len(query_term_info))
         tf_idf = tf * idf
-        # print("{} has an tf-idf of {}".format(term, tf_idf))
 
         #  build query tf-idf vector
         query_tf_idf_vector.append(tf_idf)
 
         #  also update the query vector length
         query_vector_length = query_vector_length + (tf_idf ** 2)
-        # print("Query vector length is now {}".format(query_vector_length))
 
         #  query has been handled, now process documents that contain this term
         for doc in query_term_info:
             tf = query_term_info[doc]
             doc_tf_idf = tf * idf
-            # print("The tf-idf for doc # {} is: {}".format(doc, doc_tf_idf))
+
             #  initialize vector if this is a newly discovered document
             if doc not in document_tf_idf_vectors:
                 document_tf_idf_vectors[doc] = [0] * len(query_map)
@@ -141,10 +142,8 @@ for query_id in queries:
 
     #  once terms have been traversed, finalize the query vector length by taking square root of sum of squares
     query_vector_length = math.sqrt(query_vector_length)
-    # print("Finalized query vector length: {}".format(query_vector_length))
 
-    # print("Query as a vector: {}".format(query_tf_idf_vector))
-    # print("Document vectors: {}".format(document_tf_idf_vectors))
+    print("Query as a vector: {}".format(query_tf_idf_vector))
 
     #  calculate a score for each document
     #  store results in a dictionary of the form:
@@ -158,7 +157,7 @@ for query_id in queries:
             cosine_score = 0
         else:
             cosine_score = "%.6f" % round(dot_prod / lengths_prod, 6)
-        #print("Document # {} has a cosine score of {}".format(document, cosine_score))
+
         #  add a random string to make sure index is unique if happen to have same cosine score
         results["{}-{}".format(cosine_score, randint(0, 99999999))] = [query_id, "Q0", document,
                                                                        cosine_score, "fach"]
@@ -182,5 +181,7 @@ for query_id in queries:
             result.insert(3, rank)
             out.write(" ".join(str(element) for element in result))
             out.write("\n")
-            print(" ".join(str(element) for element in result))
             rank = rank + 1
+
+print("Execution took {} seconds".format(time.time() - start_time))
+print("Vocabulary size: {}".format(len(term_dictionary)))

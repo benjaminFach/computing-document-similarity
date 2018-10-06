@@ -93,8 +93,8 @@ def parse_collection(collection_file, dictionary_file, inverted_index_file):
             line = line.translate(CONV_TABLE).rstrip().lower()
             #  this line exists in the document, append the line's tokens to the document data structure
             for token in line.split(" "):
-                #if len(token) > 5:
-                   #token = token[0:4]
+                # if len(token) > 5:
+                # token = token[0:4]
                 process_term(doc_id, token)
 
     #  break lexicon into a dictionary and inverted index

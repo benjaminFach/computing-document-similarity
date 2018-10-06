@@ -11,4 +11,3 @@ term_dictionary = get_dictionary_from_file("C:/Users/Ben/data/dictionary.txt")
 
 #  doc freqs and postings list
 print_test_all("oxygen", query_term("oxygen", term_dictionary, index))
-

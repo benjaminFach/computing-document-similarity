@@ -15,6 +15,7 @@ QUERY_ID_PATTERN = '(?<=ID=)(.*)(?=>)'
 #  a conversion table for removing punctuation from strings
 CONV_TABLE = str.maketrans({key: None for key in string.punctuation})
 
+
 #  Utility functions
 
 #  grabs the query ID from an identifier
@@ -35,6 +36,7 @@ def get_dictionary_from_file(file_name):
             val = (entry[1][0:-1], entry[2][:-1])
             term_dict[key] = val
     return term_dict
+
 
 #  parse a document containing queries
 #  return as a dictionary in the form of:

@@ -1,5 +1,3 @@
-
-
 #  given test (query) results
 #  print the doc freq and postings list
 def print_test_all(term, results):
