@@ -25,7 +25,7 @@ index = open("C:/Users/Ben/data/inverted_index-animal", 'rb')
 
 #  Calculate td-idf for index terms
 #  IDF = log2(57,982/len(postings_lists[term])
-#print("Computing document lengths for {} terms".format(len(term_dictionary)))
+# print("Computing document lengths for {} terms".format(len(term_dictionary)))
 
 #  a dictionary to store document lengths
 #  key: document ID
@@ -39,13 +39,13 @@ for term in term_dictionary:
     #  key: doc ID
     #  value: term freq
     term_info = query_term(term, term_dictionary, index)
-    #print("This term appears in {} documents".format(len(term_info)))
+    # print("This term appears in {} documents".format(len(term_info)))
     #  do processing for each document this term appears in
     idf = math.log2(NUM_DOCS / len(term_info))
     for doc in term_info:
         tf = term_info[doc]
         tf_idf = tf * idf
-        #print("tf-idf for {} in document # {} is {}".format(term, doc, tf_idf))
+        # print("tf-idf for {} in document # {} is {}".format(term, doc, tf_idf))
         #  store the square of tf-idf in accumulator
         if doc in document_lengths:
             document_lengths[doc] = document_lengths[doc] + (tf_idf ** 2)
@@ -56,7 +56,7 @@ for term in term_dictionary:
 for length in document_lengths:
     document_lengths[length] = math.sqrt(document_lengths[length])
 
-print(document_lengths)
+# print(document_lengths)
 
 #  process the query document
 queries = get_queries_from_file("C:/Users/Ben/data/animal.topics.txt")
@@ -80,7 +80,7 @@ for query_id in queries:
     #  hold the vector length of the query
     query_vector_length = 0
 
-    print("Processing query # {}: {}".format(query_id, queries[query_id]))
+    # print("Processing query # {}: {}".format(query_id, queries[query_id]))
 
     for term in queries[query_id].split(" "):
         #  tokenize query in same manner as document indexing
@@ -95,7 +95,7 @@ for query_id in queries:
         else:
             query_map[term] = 1
 
-    print("As a map: {}".format(query_map))
+    # print("As a map: {}".format(query_map))
 
     #  generate a ranked list of document results for each query
 
@@ -103,34 +103,34 @@ for query_id in queries:
     curr_query_index = 0
     idf = 0
     for term in query_map:
-        print("Checking inverted file for {}".format(term))
+        # print("Checking inverted file for {}".format(term))
         query_term_info = query_term(term, term_dictionary, index)
-        print(query_term_info)
+        # print(query_term_info)
 
         #  tf for query comes from query
         tf = query_map[term]
-        print("{} occurs {} times in the query".format(term, tf))
+        # print("{} occurs {} times in the query".format(term, tf))
 
         #  idf for query comes from background documents
         idf = math.log2(NUM_DOCS / len(query_term_info))
         tf_idf = tf * idf
-        print("{} has an tf-idf of {}".format(term, tf_idf))
+        # print("{} has an tf-idf of {}".format(term, tf_idf))
 
         #  build query tf-idf vector
         query_tf_idf_vector.append(tf_idf)
 
         #  also update the query vector length
         query_vector_length = query_vector_length + (tf_idf ** 2)
-        print("Query vector length is now {}".format(query_vector_length))
+        # print("Query vector length is now {}".format(query_vector_length))
 
         #  query has been handled, now process documents that contain this term
         for doc in query_term_info:
             tf = query_term_info[doc]
             doc_tf_idf = tf * idf
-            print("The tf-idf for doc # {} is: {}".format(doc, doc_tf_idf))
+            # print("The tf-idf for doc # {} is: {}".format(doc, doc_tf_idf))
             #  initialize vector if this is a newly discovered document
             if doc not in document_tf_idf_vectors:
-                document_tf_idf_vectors[doc] = [0]*len(query_map)
+                document_tf_idf_vectors[doc] = [0] * len(query_map)
                 document_tf_idf_vectors[doc][curr_query_index] = doc_tf_idf
 
             #  otherwise just place the tf-idf in the correct place
@@ -141,10 +141,10 @@ for query_id in queries:
 
     #  once terms have been traversed, finalize the query vector length by taking square root of sum of squares
     query_vector_length = math.sqrt(query_vector_length)
-    print("Finalized query vector length: {}".format(query_vector_length))
+    # print("Finalized query vector length: {}".format(query_vector_length))
 
-    print("Query as a vector: {}".format(query_tf_idf_vector))
-    print("Document vectors: {}".format(document_tf_idf_vectors))
+    # print("Query as a vector: {}".format(query_tf_idf_vector))
+    # print("Document vectors: {}".format(document_tf_idf_vectors))
 
     #  calculate a score for each document
     #  store results in a dictionary of the form:
@@ -152,15 +152,16 @@ for query_id in queries:
     #  value: list[query_id, "Q0", doc_id, rank (inserted after sort), cosine_score, fach]
     results = dict()
     for document in document_tf_idf_vectors:
-        dot_prod = sum([a * b for a,b in zip(query_tf_idf_vector, document_tf_idf_vectors[document])])
+        dot_prod = sum([a * b for a, b in zip(query_tf_idf_vector, document_tf_idf_vectors[document])])
         lengths_prod = query_vector_length * document_lengths[document]
         if lengths_prod == 0:
             cosine_score = 0
         else:
             cosine_score = dot_prod / lengths_prod
-        print("Document # {} has a cosine score of {}".format(document, cosine_score))
+        # print("Document # {} has a cosine score of {}".format(document, cosine_score))
         #  add a random string to make sure index is unique if happen to have same cosine score
-        results["{}-{}".format(cosine_score, randint(0,99999999))] = [query_id, "Q0", document, 0, cosine_score, "fach"]
+        results["{}-{}".format(cosine_score, randint(0, 99999999))] = [query_id, "Q0", document, 0,
+                                                                       "%.6f" % round(cosine_score, 2), "fach"]
 
     #  sort by key, insert rank, then output to file
     #  cut off at 100
