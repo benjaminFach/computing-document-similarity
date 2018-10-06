@@ -8,20 +8,20 @@ from utils.ingest_utils import *
 #  Constants
 
 #  The number of documents in the collection
-NUM_DOCS = 8
+NUM_DOCS = 57982
 
 #  The number of queries being processed
-NUM_QUERIES = 1
+NUM_QUERIES = 30
 
 #  ingest the terms into a dictionary and inverted index
 # parse_collection("S:/data/animal.txt", "C:/Users/Ben/data/dictionary-animal.txt", "C:/Users/Ben/data/inverted_index-animal")
 
 
 #  grab the dictionary from file
-term_dictionary = get_dictionary_from_file("C:/Users/Ben/data/dictionary-animal.txt")
+term_dictionary = get_dictionary_from_file("C:/Users/Ben/data/dictionary.txt")
 
 #  grab the inverted index from file
-index = open("C:/Users/Ben/data/inverted_index-animal", 'rb')
+index = open("C:/Users/Ben/data/inverted_index", 'rb')
 
 #  Calculate td-idf for index terms
 #  IDF = log2(57,982/len(postings_lists[term])
@@ -59,7 +59,7 @@ for length in document_lengths:
 # print(document_lengths)
 
 #  process the query document
-queries = get_queries_from_file("C:/Users/Ben/data/animal.topics.txt")
+queries = get_queries_from_file("C:/Users/Ben/data/cds14.topics.txt")
 
 #  process each query
 for query_id in queries:
@@ -157,11 +157,11 @@ for query_id in queries:
         if lengths_prod == 0:
             cosine_score = 0
         else:
-            cosine_score = dot_prod / lengths_prod
-        # print("Document # {} has a cosine score of {}".format(document, cosine_score))
+            cosine_score = "%.6f" % round(dot_prod / lengths_prod, 6)
+        #print("Document # {} has a cosine score of {}".format(document, cosine_score))
         #  add a random string to make sure index is unique if happen to have same cosine score
-        results["{}-{}".format(cosine_score, randint(0, 99999999))] = [query_id, "Q0", document, 0,
-                                                                       "%.6f" % round(cosine_score, 2), "fach"]
+        results["{}-{}".format(cosine_score, randint(0, 99999999))] = [query_id, "Q0", document,
+                                                                       cosine_score, "fach"]
 
     #  sort by key, insert rank, then output to file
     #  cut off at 100
@@ -170,12 +170,17 @@ for query_id in queries:
     count = 0
     for key in sorted_results:
         count = count + 1
-        if count == 0:
+        if count > 100:
             break
         final_results.append(results[key])
 
     rank = 1
-    for result in final_results:
-        result.insert(3, rank)
-        print("\t".join(str(element) for element in result))
-        rank = rank + 1
+    with open("C:/Users/Ben/data/cosine_cds14_output.txt", "a+") as out:
+        print(" ".join(["q_id", "str", "doc_id", "rank", "score", "name"]))
+        print("\n")
+        for result in final_results:
+            result.insert(3, rank)
+            out.write(" ".join(str(element) for element in result))
+            out.write("\n")
+            print(" ".join(str(element) for element in result))
+            rank = rank + 1
