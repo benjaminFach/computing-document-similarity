@@ -1,5 +1,6 @@
 import math
 
+from random import randint
 from query.query_inverted_index import query_term
 from utils.query_utils import *
 from utils.ingest_utils import *
@@ -146,6 +147,10 @@ for query_id in queries:
     print("Document vectors: {}".format(document_tf_idf_vectors))
 
     #  calculate a score for each document
+    #  store results in a dictionary of the form:
+    #  key: cosine_score
+    #  value: list[query_id, "Q0", doc_id, rank (inserted after sort), cosine_score, fach]
+    results = dict()
     for document in document_tf_idf_vectors:
         dot_prod = sum([a * b for a,b in zip(query_tf_idf_vector, document_tf_idf_vectors[document])])
         lengths_prod = query_vector_length * document_lengths[document]
@@ -154,3 +159,22 @@ for query_id in queries:
         else:
             cosine_score = dot_prod / lengths_prod
         print("Document # {} has a cosine score of {}".format(document, cosine_score))
+        #  add a random string to make sure index is unique if happen to have same cosine score
+        results["{}-{}".format(cosine_score, randint(0,99999999))] = [query_id, "Q0", document, 0, cosine_score, "fach"]
+
+    #  sort by key, insert rank, then output to file
+    #  cut off at 100
+    sorted_results = (sorted(results.keys(), reverse=True))
+    final_results = []
+    count = 0
+    for key in sorted_results:
+        count = count + 1
+        if count == 0:
+            break
+        final_results.append(results[key])
+
+    rank = 1
+    for result in final_results:
+        result.insert(3, rank)
+        print("\t".join(str(element) for element in result))
+        rank = rank + 1
